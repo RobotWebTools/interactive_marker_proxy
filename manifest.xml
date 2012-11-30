@@ -1,14 +1,11 @@
 <package>
-  <description brief="demo_interactive_markers">
+  <description brief="interactive_marker_proxy">
   </description>
   <author>David Gossow</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
 
-  <depend package="rviz"/>
-  <depend package="rosapi"/>
-  <depend package="rosbridge_server"/>
-  <depend package="interactive_marker_tutorials"/>
+  <depend package="interactive_markers"/>
 
 </package>
 
