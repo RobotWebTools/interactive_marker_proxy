@@ -49,6 +49,7 @@ public:
   std::string topic_ns_;
   std::string target_frame_;
   ros::ServiceServer service_;
+  std::string status_text_;
 
   std::map<std::string, visualization_msgs::InteractiveMarker> markers_;
   std::map<std::string, geometry_msgs::PoseStamped> frame_locked_poses_;
@@ -56,6 +57,9 @@ public:
   Proxy(std::string target_frame, std::string topic_ns) :
       client_(tf_, target_frame, topic_ns), subscribers_(0), topic_ns_(topic_ns), target_frame_(target_frame)
   {
+    ROS_INFO_STREAM("Subscribing to " << topic_ns);
+    ROS_INFO_STREAM("Target frame set to " << target_frame);
+
     client_.setInitCb(boost::bind(&Proxy::initCb, this, _1));
     client_.setUpdateCb(boost::bind(&Proxy::updateCb, this, _1));
     client_.setResetCb(boost::bind(&Proxy::resetCb, this, _1));
@@ -187,6 +191,8 @@ public:
 
   void statusCb(InteractiveMarkerClient::StatusT status, const std::string& server_id, const std::string& status_text)
   {
+    if ( status_text_ == status_text ) return;
+    status_text_ = status;
     std::string status_string[] = {"INFO", "WARN", "ERROR"};
     ROS_INFO_STREAM( "(" << status_string[(unsigned)status] << ") " << server_id << ": " << status_text);
   }
