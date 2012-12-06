@@ -87,7 +87,6 @@ public:
     for( it = markers_.begin(); it!=markers_.end(); it++ )
     {
       response.msg.markers.push_back(it->second);
-
     }
     return true;
   }
@@ -119,6 +118,10 @@ public:
         tf::poseTFToMsg(pose, imp.pose);
         imp.header.frame_id = target_frame_;
         up_msg.poses.push_back(imp);
+
+        // also, store here in case there is an init request
+        markers_[it->first].pose = imp.pose;
+        markers_[it->first].header = imp.header;
       }
       catch (...)
       {
@@ -155,6 +158,9 @@ public:
         p.pose = poses[i].pose;
         frame_locked_poses_[poses[i].name] = p;
       }
+      ROS_INFO_STREAM("Storing pose for "<<poses[i].name<<" x "<<poses[i].pose.position.x);
+      markers_[poses[i].name].pose = poses[i].pose;
+      markers_[poses[i].name].header = poses[i].header;
     }
 
     const visualization_msgs::InteractiveMarkerUpdate::_markers_type& markers = up_msg->markers;
