@@ -41,32 +41,22 @@ class Proxy
 {
 public:
   ros::NodeHandle nh_;
+  ros::Publisher pub_;
   tf::TransformListener tf_;
   interactive_markers::InteractiveMarkerClient client_;
-  ros::Publisher pub_;
-  ros::Timer timer_;
-  unsigned subscribers_;
   std::string topic_ns_;
   std::string target_frame_;
   ros::ServiceServer service_;
   std::map<std::string, std::string> status_text_;
-  double min_rotation_delta_;
-  double min_translation_delta_;
+  ros::Timer timer_;
 
-  std::map<std::string, visualization_msgs::InteractiveMarker> markers_;
-  std::map<std::string, geometry_msgs::PoseStamped> frame_locked_poses_;
+  std::map<std::string, visualization_msgs::InteractiveMarker> int_markers_;
 
   Proxy(std::string target_frame, std::string topic_ns) :
-      client_(tf_, target_frame, topic_ns), subscribers_(0), topic_ns_(topic_ns), target_frame_(target_frame)
+      client_(tf_, target_frame, topic_ns), topic_ns_(topic_ns), target_frame_(target_frame)
   {
     ROS_INFO_STREAM("Subscribing to " << topic_ns);
     ROS_INFO_STREAM("Target frame set to " << target_frame);
-
-    nh_.param<double>("min_rotation_delta", min_rotation_delta_, 2.0f);
-    nh_.param<double>("min_translation_delta", min_translation_delta_, 0.01f);
-
-    double update_rate;
-    nh_.param<double>("update_rate", update_rate, 30.0f);
 
     client_.setInitCb(boost::bind(&Proxy::initCb, this, _1));
     client_.setUpdateCb(boost::bind(&Proxy::updateCb, this, _1));
@@ -76,14 +66,22 @@ public:
 
     pub_ = nh_.advertise<visualization_msgs::InteractiveMarkerUpdate>(topic_ns_ + "/tunneled/update", 1000);
 
-    timer_ = nh_.createTimer(ros::Duration(1.0 / update_rate), boost::bind(&Proxy::timerCb, this, _1));
-
     service_ = nh_.advertiseService(topic_ns_ + "/tunneled/get_init", &Proxy::getInit, this);
+
+    ros::NodeHandle private_nh("~");
+    double update_rate;
+    private_nh.param<double>("update_rate", update_rate, 30.0f);
+    timer_ = nh_.createTimer(ros::Duration(1.0 / update_rate), boost::bind(&Proxy::timerCb, this, _1));
   }
 
   typedef visualization_msgs::InteractiveMarkerInitConstPtr InitConstPtr;
   typedef visualization_msgs::InteractiveMarkerUpdateConstPtr UpdateConstPtr;
   typedef visualization_msgs::InteractiveMarkerUpdatePtr UpdatePtr;
+
+  void timerCb(const ros::TimerEvent&)
+  {
+    client_.update();
+  }
 
   bool getInit(interactive_marker_proxy::GetInit::Request& request,
                interactive_marker_proxy::GetInit::Response& response)
@@ -91,64 +89,11 @@ public:
     ROS_INFO("Init requested.");
     std::vector< visualization_msgs::InteractiveMarker > markers;
     std::map<std::string, visualization_msgs::InteractiveMarker>::iterator it;
-    for( it = markers_.begin(); it!=markers_.end(); it++ )
+    for( it = int_markers_.begin(); it!=int_markers_.end(); it++ )
     {
       response.msg.markers.push_back(it->second);
     }
     return true;
-  }
-
-  void timerCb(const ros::TimerEvent&)
-  {
-    client_.update();
-
-    // send pose updates for frame-locked IMs
-    visualization_msgs::InteractiveMarkerUpdate up_msg;
-    up_msg.poses.reserve(frame_locked_poses_.size());
-
-    std::map<std::string, geometry_msgs::PoseStamped>::iterator it;
-    for (it = frame_locked_poses_.begin(); it != frame_locked_poses_.end(); it++)
-    {
-      try
-      {
-        std_msgs::Header& header = it->second.header;
-        tf::StampedTransform transform;
-        tf_.lookupTransform(target_frame_, header.frame_id, ros::Time(0), transform);
-
-        tf::Pose oldPose, newPose;
-        // get the stored pose
-        tf::poseMsgToTF(markers_[it->first].pose, oldPose);
-        // compute current pose
-        tf::poseMsgToTF(it->second.pose, newPose);
-        newPose = transform * newPose;
-        // compute diff
-        double transDelta = (newPose.getOrigin() - oldPose.getOrigin()).length();
-        double rotDelta = oldPose.getRotation().angleShortestPath(newPose.getRotation()) / M_PI * 180.0;
-
-        if ( transDelta > min_translation_delta_ || rotDelta > min_rotation_delta_ )
-        {
-          //std::cout << header.frame_id << ": " << deltaPosition << "  " << deltaRotation << std::endl;
-
-          // store transformed pose in update message
-          visualization_msgs::InteractiveMarkerPose imp;
-          imp.name = it->first;
-          tf::poseTFToMsg(newPose, imp.pose);
-          imp.header.frame_id = target_frame_;
-          up_msg.poses.push_back(imp);
-
-          // also, store here in case there is an init request
-          markers_[it->first].pose = imp.pose;
-          markers_[it->first].header = imp.header;
-        }
-      }
-      catch (...)
-      {
-      }
-    }
-    if ( up_msg.poses.size() > 0 )
-    {
-      pub_.publish(up_msg);
-    }
   }
 
   void updateCb(const UpdateConstPtr& up_msg)
@@ -156,58 +101,23 @@ public:
     const visualization_msgs::InteractiveMarkerUpdate::_erases_type& erases = up_msg->erases;
     for (unsigned i = 0; i < erases.size(); i++)
     {
-      frame_locked_poses_.erase(erases[i]);
-      markers_.erase(erases[i]);
+      int_markers_.erase(erases[i]);
     }
-
-    std::vector<visualization_msgs::InteractiveMarkerPose> fixed_poses;
 
     const visualization_msgs::InteractiveMarkerUpdate::_poses_type& poses = up_msg->poses;
     for (unsigned i = 0; i < poses.size(); i++)
     {
-      // if the message is in the target frame, we will not send
-      // pose updates anymore, so send it now
-      if (poses[i].header.frame_id == target_frame_)
-      {
-        frame_locked_poses_.erase(poses[i].name);
-        fixed_poses.push_back(poses[i]);
-      }
-      else
-      {
-        geometry_msgs::PoseStamped p;
-        p.header = poses[i].header;
-        p.pose = poses[i].pose;
-        frame_locked_poses_[poses[i].name] = p;
-      }
-      //ROS_INFO_STREAM("Storing pose for "<<poses[i].name<<" x "<<poses[i].pose.position.x);
-      markers_[poses[i].name].pose = poses[i].pose;
-      markers_[poses[i].name].header = poses[i].header;
+      int_markers_[poses[i].name].pose = poses[i].pose;
+      int_markers_[poses[i].name].header = poses[i].header;
     }
 
     const visualization_msgs::InteractiveMarkerUpdate::_markers_type& markers = up_msg->markers;
     for (unsigned i = 0; i < markers.size(); i++)
     {
-      if (markers[i].header.frame_id == target_frame_)
-      {
-        frame_locked_poses_.erase(markers[i].name);
-      }
-      else
-      {
-        geometry_msgs::PoseStamped p;
-        p.header = markers[i].header;
-        p.pose = markers[i].pose;
-        frame_locked_poses_[markers[i].name] = p;
-      }
-      markers_[markers[i].name] = markers[i];
+      int_markers_[markers[i].name] = markers[i];
     }
 
-    visualization_msgs::InteractiveMarkerUpdate up_msg2 = *up_msg;
-    up_msg2.poses = fixed_poses;
-
-    if ( up_msg2.poses.size() > 0 || up_msg2.markers.size() > 0 || up_msg2.erases.size() > 0 )
-    {
-      pub_.publish(up_msg2);
-    }
+    pub_.publish(up_msg);
   }
 
   void initCb(const InitConstPtr& init_msg)
@@ -216,6 +126,8 @@ public:
     update->markers = init_msg->markers;
     update->seq_num = init_msg->seq_num;
     update->server_id = init_msg->server_id;
+
+    int_markers_.clear();
     updateCb(update);
   }
 
