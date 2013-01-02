@@ -6,9 +6,11 @@ find_package(catkin REQUIRED COMPONENTS message_generation interactive_markers)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-add_executable(proxy src/proxy.cpp)
-add_dependencies(proxy ${PROJECT_NAME}_gencfg)
-target_link_libraries(proxy ${catkin_LIBRARIES})
+add_executable(${PROJECT_NAME} src/proxy.cpp)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+set_target_properties(${PROJECT_NAME}
+  PROPERTIES OUTPUT_NAME proxy )
 
 add_service_files(FILES srv/GetInit.srv)
 
