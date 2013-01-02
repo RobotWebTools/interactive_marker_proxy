@@ -1,0 +1,19 @@
+<package>
+  <name>interactive_marker_proxy</name>
+  <version>0.1.0</version>
+  <description>ROS node that acts as a proxy server for Interactive Markers, caring about message demultiplexing and tf transforms.</description>
+
+  <license>BSD</license>
+
+  <url type="website">https://github.com/dgossow/interactive_marker_proxy</url>
+  <url type="bugtracker">https://github.com/dgossow/interactive_marker_proxy/issues</url>
+
+  <author>David Gossow</author>
+  <maintainer email="dgossow@willowgarage.com">David Gossow</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>interactive_markers</build_depend>
+  <run_depend>interactive_markers</run_depend>
+
+</package>

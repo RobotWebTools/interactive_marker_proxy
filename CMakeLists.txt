@@ -1,19 +1,23 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION 2.8.3)
+project(interactive_marker_proxy)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
-
-rosbuild_init()
+find_package(catkin REQUIRED COMPONENTS message_generation interactive_markers)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-rosbuild_add_executable(proxy src/proxy.cpp)
+add_executable(proxy src/proxy.cpp)
+add_dependencies(proxy ${PROJECT_NAME}_gencfg)
+target_link_libraries(proxy ${catkin_LIBRARIES})
 
-rosbuild_gensrv()
+add_service_files(FILES srv/GetInit.srv)
+
+## Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES visualization_msgs std_msgs geometry_msgs
+)
+
+catkin_package(
+    CATKIN_DEPENDS interactive_markers
+)
+
