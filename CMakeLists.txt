@@ -1,25 +1,24 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(interactive_marker_proxy)
 
-find_package(catkin REQUIRED COMPONENTS message_generation interactive_markers)
+find_package(catkin REQUIRED COMPONENTS interactive_markers message_generation visualization_msgs)
 
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+include_directories(${catkin_INCLUDE_DIRS})
 
-add_executable(${PROJECT_NAME} src/proxy.cpp)
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
-set_target_properties(${PROJECT_NAME}
-  PROPERTIES OUTPUT_NAME proxy )
+add_service_files(
+FILES GetInit.srv)
 
-add_service_files(FILES srv/GetInit.srv)
-
-## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES visualization_msgs std_msgs geometry_msgs
 )
 
+add_executable(${PROJECT_NAME} src/proxy.cpp)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp)
+set_target_properties(${PROJECT_NAME}
+  PROPERTIES OUTPUT_NAME proxy )
+
 catkin_package(
-    CATKIN_DEPENDS interactive_markers
+    CATKIN_DEPENDS interactive_markers message_runtime visualization_msgs
 )
 
