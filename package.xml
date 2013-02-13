@@ -1,6 +1,6 @@
 <package>
   <name>interactive_marker_proxy</name>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <description>ROS node that acts as a proxy server for Interactive Markers, caring about message demultiplexing and tf transforms.</description>
   <maintainer email="dgossow@willowgarage.com">David Gossow</maintainer>
   <license>BSD</license>
