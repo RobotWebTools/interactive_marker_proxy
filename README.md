@@ -1,12 +1,16 @@
-interactive_marker_proxy
+interactive_marker_proxy [![Build Status](https://api.travis-ci.org/RobotWebTools/interactive_marker_proxy.png)](https://travis-ci.org/RobotWebTools/interactive_marker_proxy)
 ========================
 
-ROS node that acts as a proxy server for Interactive Markers, caring about message demultiplexing and tf transforms.
+#### A Proxy Server for Interactive Markers
 
-How to use
-----------
+For full documentation, see [the ROS wiki](http://ros.org/wiki/interactive_marker_proxy).
 
-To run a proxy for the Interactive Markers on the topic `/basic_controls` and transform
-everything into the frame `/base_link`, use
+[Doxygen](http://docs.ros.org/indigo/api/interactive_marker_proxy/html/) files can be found on the ROS wiki.
 
-```rosrun interactive_marker_proxy proxy  topic_ns:=/basic_controls target_frame:=/base_link```
+This project is released as part of the [Robot Web Tools](http://robotwebtools.org/) effort.
+
+### License
+interactive_marker_proxy is released with a BSD license. For full terms and conditions, see the [LICENSE](LICENSE) file.
+
+### Authors
+See the [AUTHORS](AUTHORS.md) file for a full list of contributors.
