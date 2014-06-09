@@ -1,6 +1,6 @@
 <package>
   <name>interactive_marker_proxy</name>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
   <description>A Proxy Server for Interactive Markers</description>
 
   <maintainer email="rctoris@wpi.edu">Russell Toris</maintainer>
