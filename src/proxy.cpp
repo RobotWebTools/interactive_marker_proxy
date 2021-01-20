@@ -30,7 +30,7 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 
-#include <tf/transform_listener.h>
+#include <tf2_ros/transform_listener.h>
 
 #include <interactive_markers/interactive_marker_client.h>
 #include <interactive_marker_proxy/GetInit.h>
@@ -41,8 +41,8 @@ class Proxy
 {
 public:
   ros::NodeHandle nh_;
-  ros::Publisher pub_;
-  tf::TransformListener tf_;
+  ros::Publisher pub_;  
+  tf2_ros::Buffer tf_;
   interactive_markers::InteractiveMarkerClient client_;
   std::string topic_ns_;
   std::string target_frame_;
