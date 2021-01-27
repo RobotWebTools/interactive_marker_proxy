@@ -72,6 +72,8 @@ public:
     double update_rate;
     private_nh.param<double>("update_rate", update_rate, 30.0f);
     timer_ = nh_.createTimer(ros::Duration(1.0 / update_rate), boost::bind(&Proxy::timerCb, this, _1));
+
+    tf2_ros::TransformListener listener(tf_);
   }
 
   typedef visualization_msgs::InteractiveMarkerInitConstPtr InitConstPtr;
