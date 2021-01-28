@@ -43,7 +43,7 @@ public:
   ros::NodeHandle nh_;
   ros::Publisher pub_;  
   tf2_ros::Buffer tf_;
-  interactive_markers::InteractiveMarkerClient client_;
+  interactive_markers::InteractiveMarkerClient *client_;
   std::string topic_ns_;
   std::string target_frame_;
   ros::ServiceServer service_;
@@ -53,16 +53,20 @@ public:
   std::map<std::string, visualization_msgs::InteractiveMarker> int_markers_;
 
   Proxy(std::string target_frame, std::string topic_ns) :
-      client_(tf_, target_frame, topic_ns), topic_ns_(topic_ns), target_frame_(target_frame)
+      topic_ns_(topic_ns), target_frame_(target_frame)
   {
     ROS_INFO_STREAM("Subscribing to " << topic_ns);
     ROS_INFO_STREAM("Target frame set to " << target_frame);
 
-    client_.setInitCb(boost::bind(&Proxy::initCb, this, _1));
-    client_.setUpdateCb(boost::bind(&Proxy::updateCb, this, _1));
-    client_.setResetCb(boost::bind(&Proxy::resetCb, this, _1));
-    client_.setStatusCb(boost::bind(&Proxy::statusCb, this, _1, _2, _3));
-    client_.subscribe(topic_ns_);
+    tf2_ros::TransformListener listener(tf_);
+    ros::Duration(5).sleep(); // we need to wait until the listener has the target frame available
+
+    client_ = new interactive_markers::InteractiveMarkerClient(tf_, target_frame, topic_ns);
+    client_->setInitCb(boost::bind(&Proxy::initCb, this, _1));
+    client_->setUpdateCb(boost::bind(&Proxy::updateCb, this, _1));
+    client_->setResetCb(boost::bind(&Proxy::resetCb, this, _1));
+    client_->setStatusCb(boost::bind(&Proxy::statusCb, this, _1, _2, _3));
+    client_->subscribe(topic_ns_);
 
     pub_ = nh_.advertise<visualization_msgs::InteractiveMarkerUpdate>(topic_ns_ + "/tunneled/update", 1000);
 
@@ -71,9 +75,7 @@ public:
     ros::NodeHandle private_nh("~");
     double update_rate;
     private_nh.param<double>("update_rate", update_rate, 30.0f);
-    timer_ = nh_.createTimer(ros::Duration(1.0 / update_rate), boost::bind(&Proxy::timerCb, this, _1));
-
-    tf2_ros::TransformListener listener(tf_);
+    timer_ = nh_.createTimer(ros::Duration(1.0 / update_rate), boost::bind(&Proxy::timerCb, this, _1));    
   }
 
   typedef visualization_msgs::InteractiveMarkerInitConstPtr InitConstPtr;
@@ -82,7 +84,7 @@ public:
 
   void timerCb(const ros::TimerEvent&)
   {
-    client_.update();
+    client_->update();
   }
 
   bool getInit(interactive_marker_proxy::GetInit::Request& request,
@@ -155,7 +157,15 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "interactive_marker_proxy");
   {
     ros::NodeHandle nh;
-    Proxy proxy(nh.resolveName("target_frame"), nh.resolveName("topic_ns"));
+    
+    // for tf2 we need to remove the starting slash
+    std::string target_frame = nh.resolveName("target_frame");
+    if (target_frame.at(0) == '/') 
+    {
+      target_frame.erase(0, 1);
+    }    
+
+    Proxy proxy(target_frame, nh.resolveName("topic_ns"));
     ros::spin();
   }
 }
