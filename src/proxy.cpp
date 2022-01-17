@@ -41,7 +41,7 @@ class Proxy
 {
 public:
   ros::NodeHandle nh_;
-  ros::Publisher pub_;  
+  ros::Publisher pub_;
   tf2_ros::Buffer tf_;
   interactive_markers::InteractiveMarkerClient *client_;
   std::string topic_ns_;
@@ -75,7 +75,7 @@ public:
     ros::NodeHandle private_nh("~");
     double update_rate;
     private_nh.param<double>("update_rate", update_rate, 30.0f);
-    timer_ = nh_.createTimer(ros::Duration(1.0 / update_rate), boost::bind(&Proxy::timerCb, this, _1));    
+    timer_ = nh_.createTimer(ros::Duration(1.0 / update_rate), boost::bind(&Proxy::timerCb, this, _1));
   }
 
   typedef visualization_msgs::InteractiveMarkerInitConstPtr InitConstPtr;
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
     
     // for tf2 we need to remove the starting slash
     std::string target_frame = nh.resolveName("target_frame");
-    if (target_frame.at(0) == '/') 
+    if (target_frame.at(0) == '/')
     {
       target_frame.erase(0, 1);
     }    
